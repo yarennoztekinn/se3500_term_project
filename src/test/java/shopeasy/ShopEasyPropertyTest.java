@@ -38,35 +38,100 @@ import static org.assertj.core.api.Assertions.*;
  */
 class ShopEasyPropertyTest {
 
-    // -----------------------------------------------------------------------
-    // TODO: Write your properties below.
-    //
-    // EXAMPLE STRUCTURE:
-    //
-    // /**
-    //  * Property: The final price is always non-negative.
-    //  * Bug class caught: any implementation path that produces a negative result
-    //  *                   (e.g., discount > 100 applied to negative base).
-    //  */
-    // @Property
-    // void finalPriceIsNeverNegative(
-    //         @ForAll @DoubleRange(min = 0, max = 10_000) double base,
-    //         @ForAll @DoubleRange(min = 0, max = 100)   double discount,
-    //         @ForAll @DoubleRange(min = 0, max = 100)   double tax) {
-    //
-    //     PriceCalculator calc = new PriceCalculator();
-    //     double result = calc.calculate(base, discount, tax);
-    //     assertThat(result).isGreaterThanOrEqualTo(0.0);
-    // }
-    //
-    // // Custom provider example:
-    // @Provide
-    // Arbitrary<Product> validProducts() {
-    //     return Combinators.combine(
-    //             Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5),
-    //             Arbitraries.doubles().between(0.01, 500.0)
-    //     ).as((name, price) -> new Product("P-" + name, name, price, 100));
-    // }
-    // -----------------------------------------------------------------------
+    /**
+     * Property: The final price is always non-negative.
+     * Bug class caught: arithmetic or formula errors that produce a negative result
+     *                   when discount and tax are applied to a valid base price.
+     */
+    @Property
+    void finalPriceIsNeverNegative(
+            @ForAll @DoubleRange(min = 0, max = 10_000) double base,
+            @ForAll @DoubleRange(min = 0, max = 100) double discount,
+            @ForAll @DoubleRange(min = 0, max = 100) double tax) {
 
+        PriceCalculator calc = new PriceCalculator();
+        double result = calc.calculate(base, discount, tax);
+
+        assertThat(result).isGreaterThanOrEqualTo(0.0);
+    }
+
+    /**
+     * Property: Zero discount and zero tax returns exactly the original base price.
+     * Bug class caught: incorrect formula or misordered discount/tax application.
+     */
+    @Property
+    void zeroDiscountAndTaxReturnsBasePrice(
+            @ForAll @DoubleRange(min = 0, max = 10_000) double base) {
+
+        PriceCalculator calc = new PriceCalculator();
+        double result = calc.calculate(base, 0.0, 0.0);
+
+        assertThat(result).isCloseTo(base, within(0.0001));
+    }
+
+    /**
+     * Property: Increasing discount rate never increases the final price.
+     * Bug class caught: wrong discount sign or incorrect discount weighting.
+     */
+    @Property
+    void discountMonotonicity(
+            @ForAll @DoubleRange(min = 0, max = 10_000) double base,
+            @ForAll @DoubleRange(min = 0, max = 100) double tax,
+            @ForAll @DoubleRange(min = 0, max = 100) double discount1,
+            @ForAll @DoubleRange(min = 0, max = 100) double discount2) {
+
+        Assume.that(discount1 <= discount2);
+
+        PriceCalculator calc = new PriceCalculator();
+        double price1 = calc.calculate(base, discount1, tax);
+        double price2 = calc.calculate(base, discount2, tax);
+
+        assertThat(price2).isLessThanOrEqualTo(price1);
+    }
+
+    /**
+     * Property: Adding two distinct products in either order yields the same cart total.
+     * Bug class caught: stateful ordering bugs in ShoppingCart.addItem or total calculation.
+     */
+    @Property
+    void cartAdditionIsCommutative(
+            @ForAll("validProducts") Product first,
+            @ForAll("validProducts") Product second,
+            @ForAll @IntRange(min = 1, max = 10) int quantity1,
+            @ForAll @IntRange(min = 1, max = 10) int quantity2) {
+
+        Assume.that(!first.getId().equals(second.getId()));
+
+        ShoppingCart cartA = new ShoppingCart();
+        cartA.addItem(first, quantity1);
+        cartA.addItem(second, quantity2);
+
+        ShoppingCart cartB = new ShoppingCart();
+        cartB.addItem(second, quantity2);
+        cartB.addItem(first, quantity1);
+
+        assertThat(cartA.total()).isCloseTo(cartB.total(), within(0.0001));
+    }
+
+    /**
+     * Generates valid products for property-based cart testing.
+     */
+    @Provide
+    Arbitrary<Product> validProducts() {
+        Arbitrary<String> ids = Arbitraries.strings()
+                .withCharRange('A', 'Z')
+                .ofMinLength(1)
+                .ofMaxLength(5);
+
+        Arbitrary<String> names = Arbitraries.strings()
+                .withCharRange('a', 'z')
+                .ofMinLength(1)
+                .ofMaxLength(10);
+
+        Arbitrary<Double> prices = Arbitraries.doubles()
+                .between(0.01, 500.0);
+
+        return Combinators.combine(ids, names, prices)
+                .as((id, name, price) -> new Product("P-" + id, name, price, 100));
+    }
 }
