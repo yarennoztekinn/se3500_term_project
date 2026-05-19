@@ -59,24 +59,65 @@ class OrderProcessorMockTest {
     }
 
     // -----------------------------------------------------------------------
-    // TODO: Write your mock-based tests below.
-    //
-    // EXAMPLE STRUCTURE — happy path:
-    //
-    // @Test
-    // void process_inventoryOkAndPaymentOk_returnsOrder() {
-    //     cart.addItem(widget, 2);
-    //
-    //     when(inventoryService.isAvailable(widget, 2)).thenReturn(true);
-    //     when(paymentGateway.charge("customer-1", 50.0)).thenReturn(true);
-    //
-    //     Order order = orderProcessor.process("customer-1", cart);
-    //
-    //     assertThat(order).isNotNull();
-    //     assertThat(order.getCustomerId()).isEqualTo("customer-1");
-    //     assertThat(order.getTotal()).isEqualTo(50.0);
-    //     verify(paymentGateway).charge("customer-1", 50.0);
-    // }
+    // Mock-based tests for OrderProcessor.process()
+    // -----------------------------------------------------------------------
+
+    @Test
+    void process_inventoryOkAndPaymentOk_returnsOrder() {
+        cart.addItem(widget, 2);
+
+        when(inventoryService.isAvailable(widget, 2)).thenReturn(true);
+        when(paymentGateway.charge("customer-1", 50.0)).thenReturn(true);
+
+        Order order = orderProcessor.process("customer-1", cart);
+
+        assertThat(order).isNotNull();
+        assertThat(order.getCustomerId()).isEqualTo("customer-1");
+        assertThat(order.getTotal()).isEqualTo(50.0);
+        assertThat(order.getItems()).hasSize(1);
+        verify(paymentGateway).charge("customer-1", 50.0);
+    }
+
+    @Test
+    void process_inventoryFailure_returnsNullAndDoesNotCharge() {
+        cart.addItem(widget, 1);
+
+        when(inventoryService.isAvailable(widget, 1)).thenReturn(false);
+
+        Order order = orderProcessor.process("customer-1", cart);
+
+        assertThat(order).isNull();
+        verify(paymentGateway, never()).charge(anyString(), anyDouble());
+    }
+
+    @Test
+    void process_paymentFailure_returnsNull() {
+        cart.addItem(widget, 3);
+
+        when(inventoryService.isAvailable(widget, 3)).thenReturn(true);
+        when(paymentGateway.charge("customer-1", 75.0)).thenReturn(false);
+
+        Order order = orderProcessor.process("customer-1", cart);
+
+        assertThat(order).isNull();
+        verify(paymentGateway).charge("customer-1", 75.0);
+    }
+
+    @Test
+    void process_partialQuantityInventoryFailure_returnsNullAndDoesNotCharge() {
+        Product banana = new Product("P002", "Banana", 10.0, 50);
+        cart.addItem(widget, 2);
+        cart.addItem(banana, 3);
+
+        when(inventoryService.isAvailable(widget, 2)).thenReturn(true);
+        when(inventoryService.isAvailable(banana, 3)).thenReturn(false);
+
+        Order order = orderProcessor.process("customer-1", cart);
+
+        assertThat(order).isNull();
+        verify(paymentGateway, never()).charge(anyString(), anyDouble());
+    }
+
     // -----------------------------------------------------------------------
 
 }
