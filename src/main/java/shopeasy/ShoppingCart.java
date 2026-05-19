@@ -32,17 +32,23 @@ public class ShoppingCart {
      * @param quantity number of units to add (must be > 0)
      */
     public void addItem(Product product, int quantity) {
-        // TODO (Task 3): add assert pre-condition here
+        assert product != null : "product must not be null";
+        assert quantity > 0 : "quantity must be > 0";
 
+        int previousCount = itemCount();
         for (CartItem item : items) {
             if (item.getProduct().getId().equals(product.getId())) {
-                item.setQuantity(item.getQuantity() + quantity);
-                // TODO (Task 3): add assert post-condition here
+                int previousQuantity = item.getQuantity();
+                item.setQuantity(previousQuantity + quantity);
+                assert item.getQuantity() == previousQuantity + quantity;
+                assert itemCount() == previousCount;
+                assert total() >= 0;
                 return;
             }
         }
         items.add(new CartItem(product, quantity));
-        // TODO (Task 3): add assert post-condition here
+        assert itemCount() == previousCount + 1;
+        assert total() >= 0;
     }
 
     /**
@@ -53,6 +59,7 @@ public class ShoppingCart {
      */
     public void removeItem(String productId) {
         items.removeIf(item -> item.getProduct().getId().equals(productId));
+        assert total() >= 0;
     }
 
     /**
@@ -63,10 +70,12 @@ public class ShoppingCart {
      * @throws IllegalArgumentException if the product is not in the cart
      */
     public void updateQuantity(String productId, int quantity) {
+        assert quantity > 0 : "quantity must be > 0";
         if (quantity <= 0) throw new IllegalArgumentException("Quantity must be > 0");
         for (CartItem item : items) {
             if (item.getProduct().getId().equals(productId)) {
                 item.setQuantity(quantity);
+                assert total() >= 0;
                 return;
             }
         }
@@ -86,12 +95,12 @@ public class ShoppingCart {
      * @return the total after applying the discount
      */
     public double applyDiscount(double discountRate) {
-        // TODO (Task 3): add assert pre-condition here
+        assert discountRate >= 0 && discountRate <= 100 : "discountRate must be in [0, 100]";
 
         double rawTotal = total();
         double discounted = rawTotal - (rawTotal * discountRate / 100);
 
-        // TODO (Task 3): add assert post-condition here
+        assert discountRate == 0 || discounted <= rawTotal;
         return discounted;
     }
 
@@ -127,6 +136,7 @@ public class ShoppingCart {
      */
     public void clear() {
         items.clear();
+        assert total() >= 0;
     }
 
     @Override

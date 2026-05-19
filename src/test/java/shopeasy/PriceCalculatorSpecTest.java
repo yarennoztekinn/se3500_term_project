@@ -95,28 +95,29 @@ class PriceCalculatorSpecTest {
         assertThat(result).isCloseTo(0.00945, within(0.00001));
     }
 
-    /** Invalid partition: negative basePrice is outside the valid domain and produces a negative result. */
-    @ParameterizedTest(name = "base={0}, discount={1}%, tax={2}% => expected={3}")
+    /** Invalid partition: negative basePrice violates the contract pre-condition. */
+    @ParameterizedTest(name = "base={0}, discount={1}%, tax={2}%")
     @CsvSource({
-        "-1.0, 0.0, 0.0, -1.0",
-        "-10.0, 50.0, 20.0, -6.0"
+        "-1.0, 0.0, 0.0",
+        "-10.0, 50.0, 20.0"
     })
-    void invalidNegativeBasePrice(double basePrice, double discountRate, double taxRate, double expected) {
-        assertThat(calculator.calculate(basePrice, discountRate, taxRate)).isCloseTo(expected, within(0.001));
+    void invalidNegativeBasePriceViolatesPrecondition(double basePrice, double discountRate, double taxRate) {
+        assertThatThrownBy(() -> calculator.calculate(basePrice, discountRate, taxRate))
+                .isInstanceOf(AssertionError.class);
     }
 
-    /** Invalid partition: discountRate above 100% yields a negative discounted amount. */
+    /** Invalid partition: discountRate above 100% violates the contract pre-condition. */
     @Test
-    void invalidDiscountRateAboveHundredProducesNegativeDiscountedPrice() {
-        double result = calculator.calculate(100.0, 110.0, 10.0);
-        assertThat(result).isCloseTo(-11.0, within(0.001));
+    void invalidDiscountRateAboveHundredViolatesPrecondition() {
+        assertThatThrownBy(() -> calculator.calculate(100.0, 110.0, 10.0))
+                .isInstanceOf(AssertionError.class);
     }
 
-    /** Invalid partition: taxRate above 100% grows the discounted amount beyond normal range. */
+    /** Invalid partition: taxRate above 100% violates the contract pre-condition. */
     @Test
-    void invalidTaxRateAboveHundredProducesOverchargedPrice() {
-        double result = calculator.calculate(100.0, 0.0, 150.0);
-        assertThat(result).isCloseTo(250.0, within(0.001));
+    void invalidTaxRateAboveHundredViolatesPrecondition() {
+        assertThatThrownBy(() -> calculator.calculate(100.0, 0.0, 150.0))
+                .isInstanceOf(AssertionError.class);
     }
 
 }

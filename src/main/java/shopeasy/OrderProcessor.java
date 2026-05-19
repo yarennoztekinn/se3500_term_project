@@ -38,6 +38,8 @@ public class OrderProcessor {
      * @param paymentGateway   the payment processor (non-null)
      */
     public OrderProcessor(InventoryService inventoryService, PaymentGateway paymentGateway) {
+        assert inventoryService != null : "inventoryService must not be null";
+        assert paymentGateway != null : "paymentGateway must not be null";
         if (inventoryService == null) throw new IllegalArgumentException("inventoryService must not be null");
         if (paymentGateway   == null) throw new IllegalArgumentException("paymentGateway must not be null");
         this.inventoryService = inventoryService;
@@ -55,6 +57,9 @@ public class OrderProcessor {
      *                                  {@code cart} is null or empty
      */
     public Order process(String customerId, ShoppingCart cart) {
+        assert customerId != null && !customerId.isBlank() : "customerId must not be null or blank";
+        assert cart != null : "cart must not be null";
+        assert cart.itemCount() > 0 : "cart must not be empty";
         if (customerId == null || customerId.isBlank())
             throw new IllegalArgumentException("customerId must not be null or blank");
         if (cart == null)

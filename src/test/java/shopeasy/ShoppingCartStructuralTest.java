@@ -127,8 +127,7 @@ class ShoppingCartStructuralTest {
     void updateQuantityZeroThrowsException() {
         cart.addItem(apple, 5);
         assertThatThrownBy(() -> cart.updateQuantity("P001", 0))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Quantity must be > 0");
+            .isInstanceOf(AssertionError.class);
     }
 
     /** Branch: updateQuantity — negative quantity (throws exception) */
@@ -136,8 +135,7 @@ class ShoppingCartStructuralTest {
     void updateQuantityNegativeThrowsException() {
         cart.addItem(apple, 5);
         assertThatThrownBy(() -> cart.updateQuantity("P001", -3))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Quantity must be > 0");
+            .isInstanceOf(AssertionError.class);
     }
 
     /** Branch: updateQuantity — product not found in cart (throws exception) */
